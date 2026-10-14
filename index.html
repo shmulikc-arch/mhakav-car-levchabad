@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>מעקב רכבים – לב חב"ד</title>
+<meta name="theme-color" content="#610227">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="מעקב רכבים">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f4f5; --surface:#fff; --ink:#1f1420; --muted:#667085; --line:#e4e7ee;
+  --brand:#610227; --brand-2:#4a011d; --brand-soft:#f6e3ea; --accent:#f68b37;
+  --ok:#067647; --ok-bg:#e7f6ee;
+  --warn:#b54708; --warn-bg:#fef3e2;
+  --bad:#b42318; --bad-bg:#fdecea;
+  --none:#98a2b3; --none-bg:#f2f4f7;
+  --radius:14px; --shadow:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:'Heebo',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1040px;margin:0 auto;padding:20px 16px 60px}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.top h1{margin:0;font-size:24px;font-weight:800;letter-spacing:-.3px;color:var(--brand)}
+.brand{display:flex;align-items:center;gap:14px}
+.brand img{height:46px;width:auto;display:block}
+.brand .sep{width:1px;height:38px;background:var(--line)}
+.top .sub{color:var(--muted);font-size:14px}
+.actions{display:flex;gap:8px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;gap:6px;transition:background .15s,border-color .15s}
+.btn:hover{background:#f8f9fc;border-color:#d0d5dd}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:var(--brand-2)}
+.btn.danger{color:var(--bad);border-color:#f4c7c3}
+.btn.danger:hover{background:var(--bad-bg)}
+.btn.ghost{border-color:transparent;background:transparent;padding:6px 8px}
+.btn.ghost:hover{background:var(--brand-soft)}
+.btn:disabled{opacity:.5;cursor:default}
+.icon{width:18px;height:18px;flex:none}
+
+.demo{background:#fff8e6;border:1px solid #f5d9a8;color:#7a4b00;border-radius:10px;padding:8px 12px;font-size:13px;margin-bottom:14px}
+
+/* summary */
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.stat{background:var(--surface);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+.stat b{display:block;font-size:26px;font-weight:800;line-height:1.1}
+.stat span{color:var(--muted);font-size:13px}
+.stat.bad b{color:var(--bad)} .stat.warn b{color:var(--warn)}
+
+/* cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:12px;border-top:4px solid var(--none)}
+.card.ok{border-top-color:var(--ok)} .card.warn{border-top-color:var(--accent)} .card.bad{border-top-color:var(--bad)}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.card .name{font-size:18px;font-weight:700}
+.card .meta{color:var(--muted);font-size:13px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.plate{direction:ltr;unicode-bidi:isolate;background:#fde047;color:#111;border:1px solid #d4b106;border-radius:4px;padding:0 6px;font-weight:700;font-size:12px;letter-spacing:.5px}
+.dates{display:flex;flex-direction:column;gap:6px}
+.drow{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;font-size:14px}
+.drow .lbl{color:var(--muted)}
+.drow .val{font-variant-numeric:tabular-nums}
+.pill{font-size:12px;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+.pill.ok{color:var(--ok);background:var(--ok-bg)} .pill.warn{color:var(--warn);background:var(--warn-bg)}
+.pill.bad{color:var(--bad);background:var(--bad-bg)} .pill.none{color:var(--none);background:var(--none-bg);font-weight:500}
+.details{border-top:1px dashed var(--line);padding-top:10px;font-size:13px;display:grid;grid-template-columns:auto 1fr;gap:2px 10px}
+.details dt{color:var(--muted)} .details dd{margin:0}
+.notes{font-size:13px;color:var(--muted);white-space:pre-wrap}
+
+.empty{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:40px 20px;text-align:center;color:var(--muted)}
+.empty h3{color:var(--ink);margin:0 0 6px}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:flex-start;justify-content:center;padding:24px 12px;overflow:auto;z-index:20}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:16px;width:100%;max-width:560px;box-shadow:0 20px 40px rgba(0,0,0,.2)}
+.modal header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.modal header h2{margin:0;font-size:19px}
+.modal .body{padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+.modal footer{display:flex;gap:8px;justify-content:space-between;padding:14px 20px;border-top:1px solid var(--line);flex-wrap:wrap}
+.modal footer .end{display:flex;gap:8px;margin-inline-start:auto}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:500;color:#344054}
+.f input,.f select,.f textarea,.det input{border:1px solid #d0d5dd;border-radius:9px;padding:9px 11px;background:#fff;width:100%;min-width:0}
+.f input:focus,.f select:focus,.f textarea:focus,.det input:focus{outline:2px solid var(--brand-soft);border-color:var(--brand)}
+.f textarea{min-height:64px;resize:vertical}
+.hint{font-size:12px;color:var(--muted);font-weight:400}
+.section-title{font-size:14px;font-weight:700;margin:4px 0 -4px;display:flex;justify-content:space-between;align-items:center}
+.datebox{display:grid;grid-template-columns:150px 1fr auto;gap:8px;align-items:center}
+.datebox .lbl{font-size:13px;font-weight:500;color:#344054}
+.datebox button{font-size:12px;padding:7px 10px}
+.det{display:grid;grid-template-columns:1fr 1.3fr auto;gap:8px;align-items:center}
+.det-list{display:flex;flex-direction:column;gap:8px}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:#14213d;color:#fff;padding:10px 18px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;z-index:30;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--bad)}
+.loading{color:var(--muted);text-align:center;padding:40px}
+.login{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;padding:16px;z-index:40}
+.login.open{display:flex}
+.login-box{background:var(--surface);border-radius:18px;box-shadow:0 10px 30px rgba(97,2,39,.08);padding:28px 22px;width:100%;max-width:360px;text-align:center;display:flex;flex-direction:column;gap:14px}
+.login-box img{width:200px;max-width:80%;margin:0 auto}
+.login-box h2{margin:0;font-size:20px;color:var(--brand)}
+.login-box p{margin:0;color:var(--muted);font-size:14px}
+.code-input{font-size:26px;letter-spacing:8px;text-align:center;border:1px solid #d0d5dd;border-radius:12px;padding:10px;width:100%;direction:ltr}
+.code-input:focus{outline:2px solid var(--brand-soft);border-color:var(--brand)}
+.code-box{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--brand-soft);border-radius:10px;padding:10px 12px;font-size:13px}
+.code-box b{font-size:18px;letter-spacing:3px;direction:ltr;color:var(--brand)}
+
+@media (max-width:560px){
+  .top h1{font-size:20px}
+  .brand img{height:36px} .brand .sep{height:30px}
+  .summary{gap:8px} .stat{padding:10px 12px} .stat b{font-size:22px}
+  .row2{grid-template-columns:1fr}
+  .datebox{grid-template-columns:1fr auto}
+  .datebox .lbl{grid-column:1/-1}
+  .actions .txt{display:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <img src="logo.png" alt="לב חב&quot;ד">
+      <span class="sep"></span>
+      <div>
+        <h1>מעקב רכבים</h1>
+        <div class="sub">טסט, רישיון וביטוחים</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnSettings" title="הגדרות התראות">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        <span class="txt">התראות</span>
+      </button>
+      <button class="btn primary" id="btnAdd">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        רכב חדש
+      </button>
+    </div>
+  </div>
+
+  <div id="demoNote" class="demo" hidden>מצב תצוגה: עדיין לא הוגדרה כתובת השרת (API_URL), ולכן מוצגים נתוני דוגמה שלא נשמרים.</div>
+  <div id="settingsWarn" class="demo" hidden></div>
+
+  <div class="summary" id="summary"></div>
+  <div id="list"><div class="loading">טוען…</div></div>
+</div>
+
+<!-- vehicle modal -->
+<div class="overlay" id="vehModal">
+  <form class="modal" id="vehForm" autocomplete="off">
+    <header><h2 id="vehTitle">רכב חדש</h2><button type="button" class="btn ghost" data-close>✕</button></header>
+    <div class="body">
+      <div class="row2">
+        <label class="f">שם / כינוי *<input name="vname" required placeholder="למשל: רכב הכפר"></label>
+        <label class="f">מספר רישוי<input name="plate" inputmode="numeric" placeholder="1870612"></label>
+      </div>
+      <label class="f">סוג
+        <select name="type"></select>
+      </label>
+
+      <div class="section-title">תאריכי תפוגה <span class="hint">אפשר להשאיר ריק מה שלא רלוונטי</span></div>
+      <div id="dateFields" class="det-list"></div>
+
+      <div class="section-title">פרטים נוספים <button type="button" class="btn ghost" id="addDetail">+ הוספת פרט</button></div>
+      <div id="detailList" class="det-list"></div>
+      <datalist id="detailSuggestions"></datalist>
+
+      <label class="f">הערות<textarea name="notes" placeholder="כל דבר שכדאי לזכור"></textarea></label>
+    </div>
+    <footer>
+      <button type="button" class="btn danger" id="btnDelete" hidden>מחיקת רכב</button>
+      <div class="end">
+        <button type="button" class="btn" data-close>ביטול</button>
+        <button type="submit" class="btn primary" id="btnSave">שמירה</button>
+      </div>
+    </footer>
+  </form>
+</div>
+
+<!-- settings modal -->
+<div class="overlay" id="setModal">
+  <form class="modal" id="setForm" autocomplete="off">
+    <header><h2>הגדרות התראות</h2><button type="button" class="btn ghost" data-close>✕</button></header>
+    <div class="body">
+      <label class="f">כתובת מייל להתראות
+        <input name="emails" dir="ltr" placeholder="name@example.com">
+        <span class="hint">אפשר כמה כתובות, מופרדות בפסיק</span>
+      </label>
+      <label class="f">כמה ימים לפני לשלוח
+        <input name="days" dir="ltr" placeholder="30, 7, 0">
+        <span class="hint">כל מספר הוא תזכורת נפרדת. 30 = חודש לפני, 7 = שבוע לפני (אם עוד לא עודכן תאריך חדש), 0 = ביום התפוגה.</span>
+      </label>
+      <div class="hint" id="triggerState"></div>
+      <div class="code-box" id="codeBox" hidden><span>קוד הכניסה לאפליקציה, לשיתוף עם מי שצריך גישה:</span><b id="codeVal"></b></div>
+      <button type="button" class="btn" id="btnLogout" style="align-self:flex-start">התנתקות מהמכשיר הזה</button>
+    </div>
+    <footer>
+      <button type="button" class="btn" id="btnTest">שליחת מייל בדיקה</button>
+      <div class="end">
+        <button type="button" class="btn" data-close>ביטול</button>
+        <button type="submit" class="btn primary">שמירה</button>
+      </div>
+    </footer>
+  </form>
+</div>
+
+<div class="login" id="login">
+  <form class="login-box" id="loginForm" autocomplete="off">
+    <img src="logo.png" alt="לב חב&quot;ד">
+    <h2>מעקב רכבים</h2>
+    <p>הזינו את קוד הכניסה. צריך לעשות את זה רק פעם אחת בכל מכשיר.</p>
+    <input class="code-input" name="code" inputmode="numeric" maxlength="12" placeholder="••••••" required>
+    <button class="btn primary" type="submit" style="justify-content:center">כניסה</button>
+  </form>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TYPES = ['רכב פרטי', 'רכב מסחרי', 'קרוואן', 'גרור', 'אחר'];
+const FIELDS = [
+  { key: 'license',          label: 'רישיון רכב (טסט)' },
+  { key: 'insMandatory',     label: 'ביטוח חובה' },
+  { key: 'insComprehensive', label: 'ביטוח מקיף' },
+];
+const DETAIL_SUGGESTIONS = ['נהג אחראי', 'חברת ביטוח', 'מספר פוליסה', 'סוכן ביטוח', 'יצרן ודגם', 'שנת ייצור', 'קילומטראז׳', 'טיפול אחרון', 'מיקום'];
+
+// ===== כתובת השרת: להדביק כאן את כתובת ה-Web App של Apps Script (מסתיימת ב-/exec) =====
+const API_URL = 'PASTE_APPS_SCRIPT_URL_HERE';
+
+let state = { vehicles: [], settings: { emails: '', days: [30, 7, 0] }, today: '' };
+let editing = null;
+const isDemo = !/^https:\/\/script\.google\.com\//.test(API_URL);
+const $ = (s, el = document) => el.querySelector(s);
+const store = {
+  get(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+};
+let appCode = store.get('vt_code');
+
+class AuthError extends Error {}
+
+/* ---------- API (שרת Apps Script, או נתוני דוגמה כשאין כתובת) ---------- */
+async function api(fn, ...args) {
+  if (isDemo) return Demo[fn](...args);
+  let res;
+  try {
+    res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // בלי preflight
+      body: JSON.stringify({ code: appCode, action: fn, args }),
+    });
+  } catch (e) { throw new Error('אין חיבור לשרת. בדקו את החיבור לאינטרנט.'); }
+  let out;
+  try { out = await res.json(); } catch (e) { throw new Error('תשובה לא צפויה מהשרת. ודאו שהפריסה מוגדרת לגישה "כל אחד".'); }
+  if (out.auth) throw new AuthError(out.error);
+  if (!out.ok) throw new Error(out.error || 'שגיאה');
+  return out.data;
+}
+
+const Demo = (() => {
+  const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const add = n => { const d = new Date(); d.setDate(d.getDate() + n); return iso(d); };
+  let vehicles = [
+    { id: 'd1', name: 'רכב הכפר', plate: '1870612', type: 'רכב פרטי', license: '2026-12-04', insMandatory: '2026-12-04', insComprehensive: '',
+      details: [{ label: 'נהג אחראי', value: 'לעדכן' }], notes: '' },
+    { id: 'd2', name: 'טנדר', plate: '12345678', type: 'רכב מסחרי', license: add(5), insMandatory: add(-2), insComprehensive: add(140), details: [], notes: '' },
+    { id: 'd3', name: 'קרוואן לינה', plate: '', type: 'קרוואן', license: '', insMandatory: '', insComprehensive: add(210),
+      details: [{ label: 'מיקום', value: 'שמיר – אסף הרופא' }], notes: '' },
+  ];
+  let settings = { emails: '', days: [30, 7, 0], triggerActive: true, hour: 8, code: '123456' };
+  const data = () => JSON.parse(JSON.stringify({ vehicles, settings, today: iso(new Date()) }));
+  return {
+    getData: data,
+    saveVehicle(v) {
+      if (!String(v.name || '').trim()) throw new Error('חובה להזין שם לרכב');
+      if (v.id) vehicles = vehicles.map(x => x.id === v.id ? v : x);
+      else vehicles.push({ ...v, id: 'd' + Date.now() });
+      return data();
+    },
+    deleteVehicle(id) { vehicles = vehicles.filter(x => x.id !== id); return data(); },
+    saveSettings(s) {
+      settings = { ...settings, emails: s.emails, days: String(s.days).split(/[,\s]+/).filter(Boolean).map(Number).sort((a, b) => b - a) };
+      return settings;
+    },
+    sendTestEmail() { return 'במצב תצוגה לא נשלחים מיילים'; },
+    checkCode() { return true; },
+  };
+})();
+
+/* ---------- עזר ---------- */
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function utc(s) { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); }
+function daysLeft(iso) { return Math.round((utc(iso) - utc(state.today)) / 86400000); }
+function fmtDate(iso) { if (!iso) return '—'; const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; }
+function addYear(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const last = new Date(Date.UTC(y + 1, m, 0)).getUTCDate();
+  return `${y + 1}-${String(m).padStart(2, '0')}-${String(Math.min(d, last)).padStart(2, '0')}`;
+}
+function fmtPlate(p) {
+  const d = String(p || '').replace(/\D/g, '');
+  if (d.length === 7) return `${d.slice(0, 2)}-${d.slice(2, 5)}-${d.slice(5)}`;
+  if (d.length === 8) return `${d.slice(0, 3)}-${d.slice(3, 5)}-${d.slice(5)}`;
+  return p;
+}
+function thresholds() {
+  const days = state.settings.days && state.settings.days.length ? state.settings.days : [30, 7, 0];
+  const pos = days.filter(d => d > 0);
+  return { max: Math.max(...days), urgent: pos.length ? Math.min(...pos) : 7 };
+}
+function status(iso) {
+  if (!iso) return { cls: 'none', text: 'לא הוזן', left: Infinity };
+  const left = daysLeft(iso);
+  const { max, urgent } = thresholds();
+  const cls = left <= urgent ? 'bad' : left <= max ? 'warn' : 'ok';
+  const text = left < -1 ? `פג לפני ${-left} ימים` : left === -1 ? 'פג אתמול' : left === 0 ? 'פג היום'
+             : left === 1 ? 'מחר' : `עוד ${left} ימים`;
+  return { cls, text, left };
+}
+function worst(v) {
+  const st = FIELDS.map(f => status(v[f.key])).filter(s => s.cls !== 'none');
+  if (!st.length) return { cls: 'none', left: Infinity };
+  return st.reduce((a, b) => (b.left < a.left ? b : a));
+}
+function toast(msg, err) {
+  const t = $('#toast'); t.textContent = msg; t.className = 'toast show' + (err ? ' err' : '');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.className = 'toast', 3200);
+}
+function handleErr(err) {
+  if (err instanceof AuthError) { showLogin(err.message); return; }
+  toast(errMsg(err), true);
+}
+function errMsg(e) { return (e && e.message ? e.message : String(e)).replace(/^Error:\s*/, ''); }
+
+/* ---------- תצוגה ---------- */
+function render() {
+  const { max } = thresholds();
+  let soon = 0, expired = 0;
+  state.vehicles.forEach(v => FIELDS.forEach(f => {
+    if (!v[f.key]) return;
+    const l = daysLeft(v[f.key]);
+    if (l < 0) expired++; else if (l <= max) soon++;
+  }));
+  $('#summary').innerHTML = `
+    <div class="stat"><b>${state.vehicles.length}</b><span>כלי רכב</span></div>
+    <div class="stat ${soon ? 'warn' : ''}"><b>${soon}</b><span>מועדים ב-${max} הימים הקרובים</span></div>
+    <div class="stat ${expired ? 'bad' : ''}"><b>${expired}</b><span>פג תוקף</span></div>`;
+
+  const w = $('#settingsWarn');
+  if (!isDemo && !state.settings.emails) { w.hidden = false; w.textContent = 'עדיין לא הוגדרה כתובת מייל להתראות. לחצו על "התראות" כדי להגדיר.'; }
+  else if (!isDemo && state.settings.triggerActive === false) { w.hidden = false; w.textContent = 'הבדיקה היומית לא פעילה. יש להריץ את הפונקציה setup מתוך עורך Apps Script.'; }
+  else w.hidden = true;
+
+  if (!state.vehicles.length) {
+    $('#list').innerHTML = `<div class="empty"><h3>עדיין אין רכבים</h3>לחצו על "רכב חדש" כדי להוסיף את הרכב הראשון.</div>`;
+    return;
+  }
+  const sorted = [...state.vehicles].sort((a, b) => worst(a).left - worst(b).left || a.name.localeCompare(b.name, 'he'));
+  $('#list').innerHTML = `<div class="grid">${sorted.map(cardHtml).join('')}</div>`;
+}
+
+function cardHtml(v) {
+  const wcls = worst(v).cls;
+  const dates = FIELDS.map(f => {
+    const s = status(v[f.key]);
+    return `<div class="drow"><span class="lbl">${f.label}</span><span class="val">${fmtDate(v[f.key])}</span><span class="pill ${s.cls}">${s.text}</span></div>`;
+  }).join('');
+  const det = (v.details || []).filter(d => d.label || d.value);
+  return `
+  <article class="card ${wcls}">
+    <div class="card-head">
+      <div>
+        <div class="name">${esc(v.name)}</div>
+        <div class="meta">${v.plate ? `<span class="plate">${esc(fmtPlate(v.plate))}</span>` : ''}${v.type ? `<span>${esc(v.type)}</span>` : ''}</div>
+      </div>
+      <button class="btn ghost" data-edit="${esc(v.id)}" title="עריכה">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      </button>
+    </div>
+    <div class="dates">${dates}</div>
+    ${det.length ? `<dl class="details">${det.map(d => `<dt>${esc(d.label || 'פרט')}</dt><dd>${esc(d.value)}</dd>`).join('')}</dl>` : ''}
+    ${v.notes ? `<div class="notes">${esc(v.notes)}</div>` : ''}
+  </article>`;
+}
+
+/* ---------- טופס רכב ---------- */
+function openVehicle(v) {
+  editing = v ? JSON.parse(JSON.stringify(v)) : null;
+  const f = $('#vehForm');
+  f.reset();
+  $('#vehTitle').textContent = v ? 'עריכת רכב' : 'רכב חדש';
+  $('#btnDelete').hidden = !v;
+  f.vname.value = v ? v.name : '';
+  f.plate.value = v ? v.plate : '';
+  f.type.value = v && v.type ? v.type : TYPES[0];
+  f.notes.value = v ? v.notes : '';
+
+  $('#dateFields').innerHTML = FIELDS.map(fl => `
+    <div class="datebox">
+      <span class="lbl">${fl.label}</span>
+      <input type="date" class="f-date" name="${fl.key}" value="${v && v[fl.key] ? v[fl.key] : ''}" style="border:1px solid #d0d5dd;border-radius:9px;padding:8px 10px;width:100%">
+      <button type="button" class="btn" data-plusyear="${fl.key}" title="אחרי חידוש: מקדם את התאריך בשנה">+ שנה</button>
+    </div>`).join('');
+
+  $('#detailList').innerHTML = '';
+  (v && v.details && v.details.length ? v.details : []).forEach(d => addDetailRow(d));
+  $('#vehModal').classList.add('open');
+  setTimeout(() => f.vname.focus(), 50);
+}
+
+function addDetailRow(d = { label: '', value: '' }) {
+  const row = document.createElement('div');
+  row.className = 'det';
+  row.innerHTML = `
+    <input class="d-label" list="detailSuggestions" placeholder="שם הפרט (למשל: נהג אחראי)" value="${esc(d.label)}">
+    <input class="d-value" placeholder="ערך" value="${esc(d.value)}">
+    <button type="button" class="btn ghost" title="הסרה" data-rmdet>✕</button>`;
+  $('#detailList').appendChild(row);
+  return row;
+}
+
+function readVehicleForm() {
+  const f = $('#vehForm');
+  const v = {
+    id: editing ? editing.id : '',
+    name: f.vname.value.trim(),
+    plate: f.plate.value.trim(),
+    type: f.type.value,
+    notes: f.notes.value.trim(),
+    details: [...document.querySelectorAll('#detailList .det')].map(r => ({
+      label: $('.d-label', r).value.trim(), value: $('.d-value', r).value.trim(),
+    })).filter(d => d.label || d.value),
+  };
+  FIELDS.forEach(fl => v[fl.key] = f[fl.key].value || '');
+  return v;
+}
+
+/* ---------- אירועים ---------- */
+document.addEventListener('click', e => {
+  const t = e.target.closest('button'); if (!t) return;
+  if (t.dataset.edit) openVehicle(state.vehicles.find(v => v.id === t.dataset.edit));
+  if (t.hasAttribute('data-close')) t.closest('.overlay').classList.remove('open');
+  if (t.hasAttribute('data-rmdet')) t.closest('.det').remove();
+  if (t.dataset.plusyear) {
+    const inp = $('#vehForm')[t.dataset.plusyear];
+    if (!inp.value) { toast('קודם צריך להזין את התאריך הנוכחי', true); return; }
+    inp.value = addYear(inp.value);
+    toast('התאריך הוקדם בשנה. לא לשכוח לשמור.');
+  }
+});
+document.querySelectorAll('.overlay').forEach(o => o.addEventListener('mousedown', e => { if (e.target === o) o.classList.remove('open'); }));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.overlay.open').forEach(o => o.classList.remove('open')); });
+
+$('#btnAdd').onclick = () => openVehicle(null);
+$('#addDetail').onclick = () => $('.d-label', addDetailRow()).focus();
+
+$('#vehForm').onsubmit = async e => {
+  e.preventDefault();
+  const v = readVehicleForm();
+  if (!v.name) { toast('חובה להזין שם לרכב', true); return; }
+  const b = $('#btnSave'); b.disabled = true; b.textContent = 'שומר…';
+  try {
+    state = await api('saveVehicle', v);
+    $('#vehModal').classList.remove('open');
+    render(); toast('נשמר');
+  } catch (err) { handleErr(err); }
+  finally { b.disabled = false; b.textContent = 'שמירה'; }
+};
+
+$('#btnDelete').onclick = async () => {
+  if (!editing || !confirm(`למחוק את "${editing.name}"? אי אפשר לבטל.`)) return;
+  try {
+    state = await api('deleteVehicle', editing.id);
+    $('#vehModal').classList.remove('open');
+    render(); toast('הרכב נמחק');
+  } catch (err) { handleErr(err); }
+};
+
+$('#btnSettings').onclick = () => {
+  const f = $('#setForm'), s = state.settings;
+  f.emails.value = s.emails || '';
+  f.days.value = (s.days || []).join(', ');
+  $('#triggerState').textContent = isDemo ? '' :
+    s.triggerActive ? `הבדיקה האוטומטית רצה כל בוקר בסביבות ${s.hour || 8}:00 ושולחת מייל מרוכז אחד רק כשיש מה לעדכן.`
+                    : 'הבדיקה האוטומטית לא פעילה. יש להריץ את הפונקציה setup מתוך עורך Apps Script.';
+  $('#codeBox').hidden = !s.code;
+  $('#codeVal').textContent = s.code || '';
+  $('#btnLogout').hidden = isDemo;
+  $('#setModal').classList.add('open');
+};
+
+$('#setForm').onsubmit = async e => {
+  e.preventDefault();
+  const f = e.target;
+  try {
+    state.settings = await api('saveSettings', { emails: f.emails.value, days: f.days.value, appUrl: location.origin + location.pathname });
+    $('#setModal').classList.remove('open');
+    render(); toast('ההגדרות נשמרו');
+  } catch (err) { handleErr(err); }
+};
+
+$('#btnTest').onclick = async () => {
+  const f = $('#setForm'), b = $('#btnTest');
+  b.disabled = true;
+  try {
+    state.settings = await api('saveSettings', { emails: f.emails.value, days: f.days.value, appUrl: location.origin + location.pathname });
+    toast(await api('sendTestEmail'));
+    render();
+  } catch (err) { handleErr(err); }
+  finally { b.disabled = false; }
+};
+
+/* ---------- אתחול ---------- */
+$('#vehForm').type.innerHTML = TYPES.map(t => `<option>${t}</option>`).join('');
+$('#detailSuggestions').innerHTML = DETAIL_SUGGESTIONS.map(s => `<option value="${s}">`).join('');
+$('#demoNote').hidden = !isDemo;
+
+function showLogin(msg) {
+  appCode = ''; store.del('vt_code');
+  $('#login').classList.add('open');
+  if (msg) toast(msg, true);
+  setTimeout(() => $('#loginForm').code.focus(), 50);
+}
+
+async function load() {
+  try { state = await api('getData'); render(); }
+  catch (err) {
+    if (err instanceof AuthError) { showLogin(appCode ? err.message : ''); return; }
+    $('#list').innerHTML = `<div class="empty"><h3>שגיאה בטעינה</h3>${esc(errMsg(err))}</div>`;
+  }
+}
+
+$('#loginForm').onsubmit = async e => {
+  e.preventDefault();
+  appCode = e.target.code.value.trim();
+  const b = $('button', e.target); b.disabled = true;
+  try {
+    await api('checkCode');
+    store.set('vt_code', appCode);
+    $('#login').classList.remove('open');
+    e.target.reset();
+    await load();
+  } catch (err) {
+    appCode = '';
+    toast(errMsg(err), true);
+  } finally { b.disabled = false; }
+};
+
+$('#btnLogout').onclick = () => {
+  if (!confirm('להתנתק מהמכשיר הזה? יהיה צריך להזין שוב את קוד הכניסה.')) return;
+  $('#setModal').classList.remove('open');
+  state = { vehicles: [], settings: { emails: '', days: [30, 7, 0] }, today: '' };
+  $('#summary').innerHTML = ''; $('#list').innerHTML = '';
+  showLogin();
+};
+
+if (!isDemo && !appCode) showLogin(); else load();
+
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
