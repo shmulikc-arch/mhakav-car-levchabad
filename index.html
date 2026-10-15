@@ -115,6 +115,13 @@ label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:50
 .code-input{font-size:26px;letter-spacing:8px;text-align:center;border:1px solid #d0d5dd;border-radius:12px;padding:10px;width:100%;direction:ltr}
 .code-input:focus{outline:2px solid var(--brand-soft);border-color:var(--brand)}
 .code-box{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--brand-soft);border-radius:10px;padding:10px 12px;font-size:13px}
+.wa-row{display:grid;grid-template-columns:1fr 1.1fr 1fr auto;gap:6px;align-items:center}
+.wa-row input{border:1px solid #d0d5dd;border-radius:9px;padding:8px 10px;background:#fff;width:100%;min-width:0}
+.wa-help{font-size:12px;color:var(--muted);background:#f8f9fc;border:1px solid var(--line);border-radius:10px;padding:10px 12px;line-height:1.6}
+.wa-help ol{margin:4px 0 0;padding-inline-start:18px}
+.wa-help code{white-space:nowrap;background:#fff;border:1px solid var(--line);border-radius:5px;padding:0 5px;direction:ltr;unicode-bidi:isolate}
+.test-btns{display:flex;gap:8px;flex-wrap:wrap}
+@media (max-width:560px){.wa-row{grid-template-columns:1fr 1fr auto}.wa-row .wa-name{grid-column:1/-1}}
 .code-box b{font-size:18px;letter-spacing:3px;direction:ltr;color:var(--brand)}
 
 @media (max-width:560px){
@@ -203,12 +210,26 @@ label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:50
         <input name="days" dir="ltr" placeholder="30, 7, 0">
         <span class="hint">כל מספר הוא תזכורת נפרדת. 30 = חודש לפני, 7 = שבוע לפני (אם עוד לא עודכן תאריך חדש), 0 = ביום התפוגה.</span>
       </label>
+      <div class="section-title">וואטסאפ <button type="button" class="btn ghost" id="addWa">+ הוספת נמען</button></div>
+      <div id="waList" class="det-list"></div>
+      <details class="wa-help">
+        <summary>איך מקבלים מפתח (פעם אחת לכל טלפון)</summary>
+        <ol>
+          <li>שומרים באנשי הקשר את המספר <code>+34 611 01 16 37</code> (שירות CallMeBot).</li>
+          <li>שולחים אליו בוואטסאפ את ההודעה: <code>I allow callmebot to send me messages</code></li>
+          <li>תוך דקה-שתיים מגיעה תשובה עם <b>APIKEY</b> – מספר. מעתיקים אותו לכאן יחד עם מספר הטלפון.</li>
+        </ol>
+        אם לא הגיעה תשובה, כדאי לבדוק באתר callmebot.com שהמספר לא השתנה.
+      </details>
       <div class="hint" id="triggerState"></div>
       <div class="code-box" id="codeBox" hidden><span>קוד הכניסה לאפליקציה, לשיתוף עם מי שצריך גישה:</span><b id="codeVal"></b></div>
       <button type="button" class="btn" id="btnLogout" style="align-self:flex-start">התנתקות מהמכשיר הזה</button>
     </div>
     <footer>
-      <button type="button" class="btn" id="btnTest">שליחת מייל בדיקה</button>
+      <div class="test-btns">
+        <button type="button" class="btn" id="btnTest">בדיקת מייל</button>
+        <button type="button" class="btn" id="btnTestWa">בדיקת וואטסאפ</button>
+      </div>
       <div class="end">
         <button type="button" class="btn" data-close>ביטול</button>
         <button type="submit" class="btn primary">שמירה</button>
@@ -239,7 +260,7 @@ const FIELDS = [
 const DETAIL_SUGGESTIONS = ['נהג אחראי', 'חברת ביטוח', 'מספר פוליסה', 'סוכן ביטוח', 'יצרן ודגם', 'שנת ייצור', 'קילומטראז׳', 'טיפול אחרון', 'מיקום'];
 
 // ===== כתובת השרת: להדביק כאן את כתובת ה-Web App של Apps Script (מסתיימת ב-/exec) =====
-const API_URL = 'https://script.google.com/macros/s/AKfycbwbP19Gzi3Ao-eHF7QEeDtKQEs_ZGvcy6OIwUXpA-4BgTCXT5TT_NnLToSyJy0acjgf/exec';
+const API_URL = 'PASTE_APPS_SCRIPT_URL_HERE';
 
 let state = { vehicles: [], settings: { emails: '', days: [30, 7, 0] }, today: '' };
 let editing = null;
@@ -282,7 +303,7 @@ const Demo = (() => {
     { id: 'd3', name: 'קרוואן לינה', plate: '', type: 'קרוואן', license: '', insMandatory: '', insComprehensive: add(210),
       details: [{ label: 'מיקום', value: 'שמיר – אסף הרופא' }], notes: '' },
   ];
-  let settings = { emails: '', days: [30, 7, 0], triggerActive: true, hour: 8, code: '123456' };
+  let settings = { emails: '', days: [30, 7, 0], whatsapp: [], triggerActive: true, hour: 8, code: '123456' };
   const data = () => JSON.parse(JSON.stringify({ vehicles, settings, today: iso(new Date()) }));
   return {
     getData: data,
@@ -294,10 +315,11 @@ const Demo = (() => {
     },
     deleteVehicle(id) { vehicles = vehicles.filter(x => x.id !== id); return data(); },
     saveSettings(s) {
-      settings = { ...settings, emails: s.emails, days: String(s.days).split(/[,\s]+/).filter(Boolean).map(Number).sort((a, b) => b - a) };
+      settings = { ...settings, emails: s.emails, whatsapp: s.whatsapp || [], days: String(s.days).split(/[,\s]+/).filter(Boolean).map(Number).sort((a, b) => b - a) };
       return settings;
     },
     sendTestEmail() { return 'במצב תצוגה לא נשלחים מיילים'; },
+    sendTestWhatsApp() { return 'במצב תצוגה לא נשלחות הודעות'; },
     checkCode() { return true; },
   };
 })();
@@ -362,7 +384,7 @@ function render() {
     <div class="stat ${expired ? 'bad' : ''}"><b>${expired}</b><span>פג תוקף</span></div>`;
 
   const w = $('#settingsWarn');
-  if (!isDemo && !state.settings.emails) { w.hidden = false; w.textContent = 'עדיין לא הוגדרה כתובת מייל להתראות. לחצו על "התראות" כדי להגדיר.'; }
+  if (!isDemo && !state.settings.emails && !(state.settings.whatsapp || []).length) { w.hidden = false; w.textContent = 'עדיין לא הוגדר לאן לשלוח התראות. לחצו על "התראות" כדי להגדיר מייל או וואטסאפ.'; }
   else if (!isDemo && state.settings.triggerActive === false) { w.hidden = false; w.textContent = 'הבדיקה היומית לא פעילה. יש להריץ את הפונקציה setup מתוך עורך Apps Script.'; }
   else w.hidden = true;
 
@@ -495,8 +517,10 @@ $('#btnSettings').onclick = () => {
   const f = $('#setForm'), s = state.settings;
   f.emails.value = s.emails || '';
   f.days.value = (s.days || []).join(', ');
+  $('#waList').innerHTML = '';
+  (s.whatsapp || []).forEach(w => addWaRow(w));
   $('#triggerState').textContent = isDemo ? '' :
-    s.triggerActive ? `הבדיקה האוטומטית רצה כל בוקר בסביבות ${s.hour || 8}:00 ושולחת מייל מרוכז אחד רק כשיש מה לעדכן.`
+    s.triggerActive ? `הבדיקה האוטומטית רצה כל בוקר בסביבות ${s.hour || 8}:00 ושולחת התראה מרוכזת אחת (מייל ו/או וואטסאפ) רק כשיש מה לעדכן.`
                     : 'הבדיקה האוטומטית לא פעילה. יש להריץ את הפונקציה setup מתוך עורך Apps Script.';
   $('#codeBox').hidden = !s.code;
   $('#codeVal').textContent = s.code || '';
@@ -504,11 +528,47 @@ $('#btnSettings').onclick = () => {
   $('#setModal').classList.add('open');
 };
 
+function addWaRow(w = { name: '', phone: '', apikey: '' }) {
+  const row = document.createElement('div');
+  row.className = 'wa-row';
+  row.innerHTML = `
+    <input class="wa-name" placeholder="שם (למשל: משה)" value="${esc(w.name)}">
+    <input class="wa-phone" dir="ltr" inputmode="tel" placeholder="050-1234567" value="${esc(w.phone)}">
+    <input class="wa-key" dir="ltr" inputmode="numeric" placeholder="APIKEY" value="${esc(w.apikey)}">
+    <button type="button" class="btn ghost" title="הסרה" data-rmwa>✕</button>`;
+  $('#waList').appendChild(row);
+  return row;
+}
+function readSettingsForm() {
+  const f = $('#setForm');
+  return {
+    emails: f.emails.value,
+    days: f.days.value,
+    appUrl: location.origin + location.pathname,
+    whatsapp: [...document.querySelectorAll('#waList .wa-row')].map(r => ({
+      name: $('.wa-name', r).value.trim(), phone: $('.wa-phone', r).value.trim(), apikey: $('.wa-key', r).value.trim(),
+    })).filter(w => w.name || w.phone || w.apikey),
+  };
+}
+$('#addWa').onclick = () => $('.wa-name', addWaRow()).focus();
+document.addEventListener('click', e => { const t = e.target.closest('[data-rmwa]'); if (t) t.closest('.wa-row').remove(); });
+
+$('#btnTestWa').onclick = async () => {
+  const b = $('#btnTestWa');
+  b.disabled = true;
+  try {
+    state.settings = await api('saveSettings', readSettingsForm());
+    toast(await api('sendTestWhatsApp'));
+    render();
+  } catch (err) { handleErr(err); }
+  finally { b.disabled = false; }
+};
+
 $('#setForm').onsubmit = async e => {
   e.preventDefault();
   const f = e.target;
   try {
-    state.settings = await api('saveSettings', { emails: f.emails.value, days: f.days.value, appUrl: location.origin + location.pathname });
+    state.settings = await api('saveSettings', readSettingsForm());
     $('#setModal').classList.remove('open');
     render(); toast('ההגדרות נשמרו');
   } catch (err) { handleErr(err); }
@@ -518,7 +578,7 @@ $('#btnTest').onclick = async () => {
   const f = $('#setForm'), b = $('#btnTest');
   b.disabled = true;
   try {
-    state.settings = await api('saveSettings', { emails: f.emails.value, days: f.days.value, appUrl: location.origin + location.pathname });
+    state.settings = await api('saveSettings', readSettingsForm());
     toast(await api('sendTestEmail'));
     render();
   } catch (err) { handleErr(err); }
